@@ -15,7 +15,7 @@ CREATE  TABLE IF NOT EXISTS `choral_touch`.`event` (
   `month` INT NOT NULL ,
   `day` INT NOT NULL ,
   `year` INT NOT NULL ,
-  `note` VARCHAR(45) NULL ,
+  `note` VARCHAR(128) NULL ,
   PRIMARY KEY (`id`) ,
   UNIQUE INDEX `id_UNIQUE` (`id` ASC) )
 ENGINE = InnoDB;
