@@ -120,7 +120,6 @@ result['year'], result['note'])
 
         today = datetime.datetime.now()
         jd_start = (today - datetime.datetime(today.year, 1, 1)).days + 1
-        jd_start = 360
 
         mysql_url = "mysql://%s:%s@%s:3306/%s" % (mysql_username, mysql_password, mysql_hostname, mysql_database)
         engine = create_engine(mysql_url, echo=False)
