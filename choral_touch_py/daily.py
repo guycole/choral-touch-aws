@@ -32,8 +32,7 @@ class ChoralTouch:
         outfile.write('<table>')
 
         for result in results:
-            buffer = "<tr><td>%d/%d</td><td>%d</td><td>%s</td></tr>" % (result['month'], result['day'], 
-result['year'], result['note'])
+            buffer = "<tr><td>%d/%d</td><td>%d</td><td>%s</td></tr>" % (result['month'], result['day'], result['year'], result['note'])
 
             outfile.write(buffer)
 
