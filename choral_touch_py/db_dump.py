@@ -12,9 +12,12 @@ import time
 import uuid
 import yaml
 
-from boto.s3.connection import S3Connection
-from boto.exception import S3ResponseError
-from boto.s3.key import Key
+import boto3
+import botocore
+
+#from boto.s3.connection import S3Connection
+#from boto.exception import S3ResponseError
+#from boto.s3.key import Key
 
 
 class DumpDriver:
@@ -28,15 +31,11 @@ class DumpDriver:
         print command
         os.system(command)
 
-        s3directory = 'dbdump-digiburo-com'
-        s3filename = "%s/%s" % (s3directory, dump_name)
+        s3bucket_name = 'dbdump.braingang.net'
+        s3file_name = "%s/%s" % (s3bucket_name, dump_name)
 
-        s3connection = S3Connection()
-        s3bucket = s3connection.get_bucket('dbdump-digiburo-com')
-
-        s3key = Key(s3bucket)
-        s3key.key = dump_name
-        s3key.set_contents_from_filename(dump_path)
+        s3 = boto3.resource('s3')
+        s3.Object(s3bucket_name, dump_name).put(Body=open(dump_path, 'rb'))
 
         os.unlink(dump_path)
 
