@@ -15,6 +15,7 @@ CREATE  TABLE IF NOT EXISTS `choral_touch_v1`.`event` (
   `month` INT NOT NULL ,
   `day` INT NOT NULL ,
   `year` INT NOT NULL ,
+  `date` DATE NOT NULL ,
   `note` VARCHAR(128) NOT NULL ,
   PRIMARY KEY (`id`) ,
   UNIQUE INDEX `id_UNIQUE` (`id` ASC) )

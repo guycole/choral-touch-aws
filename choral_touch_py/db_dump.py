@@ -13,7 +13,15 @@ import uuid
 import yaml
 
 import boto3
+<<<<<<< HEAD
 #import botocore
+=======
+import botocore
+
+#from boto.s3.connection import S3Connection
+#from boto.exception import S3ResponseError
+#from boto.s3.key import Key
+>>>>>>> fc47d0afbc1fb286eca5cb080af73a1f49a5638e
 
 
 class DumpDriver:
@@ -27,8 +35,16 @@ class DumpDriver:
         print command
         os.system(command)
 
+<<<<<<< HEAD
         s3 = boto3.client('s3')
         s3.upload_file(dump_path, 'dbdump.braingang.net', dump_name)
+=======
+        s3bucket_name = 'dbdump.braingang.net'
+        s3file_name = "%s/%s" % (s3bucket_name, dump_name)
+
+        s3 = boto3.resource('s3')
+        s3.Object(s3bucket_name, dump_name).put(Body=open(dump_path, 'rb'))
+>>>>>>> fc47d0afbc1fb286eca5cb080af73a1f49a5638e
 
         os.unlink(dump_path)
 
