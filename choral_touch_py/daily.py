@@ -44,7 +44,7 @@ result['year'], result['note'])
     def mailReport(self, file_name):
         message = MIMEMultipart()
         message['Subject'] = 'Choral Touch'
-        message['From'] = 'Digi Burro <digiburo@gmail.com>'
+        message['From'] = 'Guy Cole <guycole@gmail.com>'
         message['To'] = 'guycole@gmail.com'
 
         html = open(file_name, 'r').read()
@@ -52,7 +52,7 @@ result['year'], result['note'])
         attachment = MIMEText(html, 'html')
         message.attach(attachment)
 
-        connection = boto.ses.connect_to_region('us-east-1')
+        connection = boto.ses.connect_to_region('us-west-2')
         status = connection.send_raw_email(message.as_string(), source=message['From'], destinations=message['To'])
 
     def day_of_year(self, day, month):
