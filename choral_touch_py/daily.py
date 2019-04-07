@@ -1,4 +1,4 @@
-#! /usr/bin/python
+#! /usr/bin/python3
 #
 # Title:choral_touch.py
 # Description: anniversary reminder
@@ -9,38 +9,28 @@ import calendar
 import datetime
 import sys
 import time
-import uuid
-import yaml
-
-from sql_table import Event
-
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
 
 import boto.ses
 
-from email.MIMEMultipart import MIMEMultipart
+from email.mime.multipart import MIMEMultipart
 from email.MIMEText import MIMEText
 
 
 class ChoralTouch:
 
-    def htmlWriter(self, file_name, results):
-        outfile = open(file_name, 'w')
-        outfile.write('<html><body>')
-        outfile.write('<h1>Choral Touch</h1>')
-        outfile.write('<table>')
+    def html_writer(self, file_name, candidates):
+        with open(file_name, "wt") as out_file:
+            out_file.write('<html><body>')
+            out_file.write('<h1>Choral Touch</h1>')
+            out_file.write('<table>')
 
-        for result in results:
-            buffer = "<tr><td>%d/%d</td><td>%d</td><td>%s</td></tr>" % (result['month'], result['day'], result['year'], result['note'])
+            for current in candidates:
+                out_file.write("<tr><td>%s</td></tr>" % current)
 
-            outfile.write(buffer)
+            out_file.write('</table>')
+            out_file.write('</body></html>')
 
-        outfile.write('</table>')
-        outfile.write('</body></html>')
-        outfile.close()
-
-    def mailReport(self, file_name):
+    def mail_report(self, file_name):
         message = MIMEMultipart()
         message['Subject'] = 'Choral Touch'
         message['From'] = 'Guy Cole <guycole@gmail.com>'
@@ -53,89 +43,55 @@ class ChoralTouch:
 
         connection = boto.ses.connect_to_region('us-west-2')
         status = connection.send_raw_email(message.as_string(), source=message['From'], destinations=message['To'])
+        print(status)
 
-    def day_of_year(self, day, month):
-        today = datetime.datetime.now()
-        candidate = datetime.datetime(today.year, month, day)
-        return (candidate - datetime.datetime(today.year, 1, 1)).days + 1
+    def day_of_year(self, date_tuple):
+        candidate = datetime.datetime(date_tuple[2], date_tuple[0], date_tuple[1])
+        return (candidate - datetime.datetime(date_tuple[2], 1, 1)).days + 1
 
-    def filter(self, day, month, jd_start, date_delta):
-        today = datetime.datetime.now()
-        if calendar.isleap(today.year):
-            jd_limit = 366
-        else:
-            jd_limit = 365
+    def filter(self, julian_dates, raw_line):
+        ndx = raw_line.find(' ')
+        elements = raw_line[:ndx].split('/')
+        date_tuple = (int(elements[0]), int(elements[1]), int(elements[2]))
+        doy = self.day_of_year(date_tuple)
 
-        jd_stop = jd_start + date_delta
+        if doy in julian_dates:
+            return True
 
-        jd = self.day_of_year(day, month)
-        if jd_stop > jd_limit and jd < date_delta:
-            # year end wrap
-            jd += jd_limit
+        return False
 
-        if jd >= jd_start and jd < jd_stop:
-            return jd
-
-        return -1
-
-    def discovery(self, jd_start, date_delta, session):
-        results = []
-
-        selected_set = session.query(Event).all()
-        for selected in selected_set:
-            id = selected.id
-            month = selected.month
-            day = selected.day
-            year = selected.year
-            note = selected.note
-
-            jd = self.filter(day, month, jd_start, date_delta)
-            if jd < 0:
-                print "failure:%d:%s" % (id, note)
-            else:
-                print "success:%d:%s" % (id, note)
-
-                flag = False
-                fresh = {'jd':jd, 'id':id, 'month':month, 'day':day, 'year':year, 'note':note}
-                for temp in results:
-                    if jd > temp['jd']:
-                        flag = True
-                        results.insert(results.index(temp), fresh) 
-                        break;
-
-                if flag is False:
-                    results.append(fresh)
-
-        print len(results)
-        for temp in results:
-            print temp
-
-        return results
-
-    def execute(self, task_id):
+    def execute(self, data_file_name):
         start_time = time.time()
 
         date_delta = 10
+        julian_dates = []
 
         today = datetime.datetime.now()
-        jd_start = (today - datetime.datetime(today.year, 1, 1)).days + 1
+        for ndx in range(date_delta):
+            next_day = today + datetime.timedelta(days=1)
+            date_tuple = (next_day.month, next_day.day, next_day.year)
+            julian_dates.append(self.day_of_year(date_tuple))
+            today = next_day
 
-        mysql_url = "mysql://%s:%s@%s:3306/%s" % (mysql_username, mysql_password, mysql_hostname, mysql_database)
-        engine = create_engine(mysql_url, echo=False)
-        Session = sessionmaker(bind=engine)
-        session = Session()
+        candidates = []
+        with open(data_file_name, 'rt') as in_file:
+            for raw_line in in_file:
+                if raw_line.startswith('#'):
+                    continue
 
-        results = self.discovery(jd_start, date_delta, session)
-        outfile = "%s/outmail" % (mail_dir)
-        self.htmlWriter(outfile, results)
-        self.mailReport(outfile)
+                if self.filter(julian_dates, raw_line) is True:
+                    candidates.append(raw_line.strip())
+
+        out_mail = "/tmp/out_mail"
+        self.html_writer(out_mail, candidates)
+        self.mail_report(out_mail)
 
         stop_time = time.time()
         duration = stop_time - start_time
-        log_message = "stop w/duration %d" % (duration)
-        print log_message
+        log_message = "stop w/duration %d" % duration
+        print(log_message)
 
-print 'start choral touch'
+print('start choral touch')
 
 #
 # argv[1] = configuration filename
@@ -146,16 +102,19 @@ if __name__ == '__main__':
     else:
         yaml_filename = 'config.yaml'
 
-    configuration = yaml.load(file(yaml_filename))
+#    with open(yaml_filename, 'r') as stream:
+#        try:
+#            configuration = yaml.load(stream)
+#        except yaml.YAMLError as exc:
+#            print(exc)
 
-    mail_dir = configuration['emailDir']
-
-    mysql_username = configuration['mySqlUserName']
-    mysql_password = configuration['mySqlPassWord']
-    mysql_hostname = configuration['mySqlHostName']
-    mysql_database = configuration['mySqlDataBase']
-
+#    configuration = yaml.load(file(yaml_filename))
+#
+#    mail_dir = configuration['emailDir']
+#
     driver = ChoralTouch()
-    driver.execute(uuid.uuid4())
+    driver.execute('/var/choral/touch/choral_touch.dat')
+#    driver.execute('/Users/gsc/IdeaProjects/choral-touch-aws/choral_touch.dat')
 
-print 'stop choral touch'
+
+print('stop choral touch')
