@@ -16,5 +16,5 @@ COPY . /choral-touch-aws
 WORKDIR /choral-touch-aws
 RUN pip3 install -r requirements.txt
 #
-#ENTRYPOINT ["bin/runner.sh"]
+ENTRYPOINT ["bin/runner.sh"]
 #

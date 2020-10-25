@@ -13,8 +13,7 @@ import time
 import boto.ses
 
 from email.mime.multipart import MIMEMultipart
-from email.MIMEText import MIMEText
-
+from email.mime.text import MIMEText
 
 class ChoralTouch:
 
